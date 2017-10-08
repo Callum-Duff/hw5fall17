@@ -84,6 +84,7 @@ Then /^I should see only movies rated: "(.*?)"$/ do |arg1|
   unallowed_ratings = Set.new ['G', 'PG', 'PG-13', 'NC-17', 'R']
   unallowed_ratings = unallowed_ratings - allowed_ratings
   #split_string.each { |rating| puts rating}
+  
   # Now, check that the table matches the expected ratings
   result = true
   all("tr").each do |tr|
@@ -95,57 +96,62 @@ Then /^I should see only movies rated: "(.*?)"$/ do |arg1|
       end
     end
   end
-  #result = false
-  #all("tr").each do |tr|
-  #  result = false
-  #  puts tr.text
-  #  split_string.each do |rating|
-  #    if tr.has_content?(rating)
-  #        result = true
-  #    end
-  #  end
-    
-  #  if !result
-  #      break
-  #  end
-  #end  
   expect(result).to be_truthy
 end
 
 Then /^I should see all of the movies$/ do
   movie_collection = Movie.all
   movies_set = Set.new
-  movie_collection.each { |movie| movies_set.add(movie[:title]) }
+  movie_collection.each { |movie| movies_set.add(movie.title) }
   #puts 'HERE--------------------'
   #puts movie_collection[0].title
-  
   result_total = true
 
+  num_rows = 0
   all('tr').each do |tr|
     result = false
     text_str = tr.text
-    puts text_str
-    if text_str = 'Movie Title Rating Release Date More Info'
+    
+    if text_str == 'Movie Title Rating Release Date More Info'
       next
     end
     
+    # If not in the header row, increment the row counter
+    num_rows += 1
+    
+    # Make sure each movie in the table is also in the database
     movies_set.each do |movie|
       if text_str.include?(movie)
-        #puts movie
-        #puts "True"
-        #puts movie.title
         result = true
       end
     end
-    puts '---------------------------'
+    
     if !result
       result_total = false
     end
-    #puts movie.title
   end
-  puts result_total
+  
+  # Now check if the table lengths are the same
+  if num_rows != movies_set.length
+    result_total = false
+  end
+
   expect(result_total).to be_truthy
 end
 
 
+#                                PART 3
+# -------------------------------------------------------------------------
+When /^I have opted to sort movies alphabetically$/ do
+  click_on 'Movie Title'
+end
+
+When /^I have opted to sort movies by release date$/ do
+  click_on 'Release Date'
+end
+
+Then /^I should see "(.*?)" before "(.*?)"$/ do |first_movie, second_movie|
+  match = /#{first_movie}.*#{second_movie}/m =~ page.body
+  expect(match).to be_truthy
+end
 
